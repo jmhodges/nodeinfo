@@ -1,1 +1,2 @@
-jbuildr package && cp target/nodeinfo-1.0.0.jar nodeinfo.jar && rm -f numofnodes.dat &&  ~/projects/pig-0.5.0/bin/pig -x local ~/projects/nodeinfo/nodecount.pig && ~/projects/pig-0.5.0/bin/pig -p numofnodes=`cat numofnodes.dat` -x local ~/projects/nodeinfo/nodeinfo.pig
+#/bin/bash
+jruby -S buildr package && cp target/nodeinfo-1.0.0.jar nodeinfo.jar && rm -f numofnodes.dat &&  ~/projects/pig-0.5.0/bin/pig -x local ~/projects/nodeinfo/nodecount.pig && ~/projects/pig-0.5.0/bin/pig -p numofnodes=`cat numofnodes.dat` -x local ~/projects/nodeinfo/nodeinfo.pig
