@@ -19,8 +19,8 @@ YANDG = JOIN GW BY (group.rawword, group.position), Y BY (group.rawword, group.p
 PARTIAL = FOREACH YANDG GENERATE Y::group.rawword as rawword, Y::group.position as position, Y::group.node as node, Y::group.hour as hour, (GW::gw * nodeinfo.LOG2L(Y::wordpernodeperhourcount)) as partial;
 
 FULLGROUP = GROUP PARTIAL BY (node, hour);
-NODEINFO = FOREACH FULLGROUP GENERATE group.node, group.hour, SUM(PARTIAL.partial) as interestingness;
+NODEINFO = FOREACH FULLGROUP GENERATE group.node, group.hour, SUM(PARTIAL.partial) as oddness;
 
-SORTEDNODEINFO = ORDER NODEINFO BY interestingness DESC;
+SORTEDNODEINFO = ORDER NODEINFO BY oddness DESC;
 
 DUMP SORTEDNODEINFO;
