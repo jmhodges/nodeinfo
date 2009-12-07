@@ -1,6 +1,6 @@
 REGISTER nodeinfo.jar
 
-LINE = LOAD 'smallsystem.log' USING TextLoader();
+LINE = LOAD '$syslogfilepath' USING TextLoader();
 WORD = FOREACH LINE GENERATE FLATTEN(nodeinfo.WordedSyslog($0));
 
 YGROUP = GROUP WORD BY (word, position, node, hour);

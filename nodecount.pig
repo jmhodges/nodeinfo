@@ -1,6 +1,6 @@
 REGISTER nodeinfo.jar
 
-LINE = LOAD 'smallsystem.log' USING TextLoader();
+LINE = LOAD '$syslogfilepath' USING TextLoader();
 WORD = FOREACH LINE GENERATE FLATTEN(nodeinfo.WordedSyslog($0));
 C = FOREACH WORD GENERATE node, 1 as partial;
 D = DISTINCT C;
