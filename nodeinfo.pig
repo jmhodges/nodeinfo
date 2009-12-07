@@ -19,10 +19,10 @@ GW = FILTER ALLGW BY gw > 0.0;
 
 YANDG = JOIN GW BY (group.word, group.position), Y BY (group.word, group.position);
 
-PARTIAL = FOREACH YANDG GENERATE Y::group.word as word, Y::group.position as position, Y::group.node as node, Y::group.hour as hour, (GW::gw * nodeinfo.LOG2(Y::wordpernodeperhourcount)) as partial;
+PARTIAL = FOREACH YANDG GENERATE Y::group.node as node, Y::group.hour as hour, (GW::gw * nodeinfo.LOG2(Y::wordpernodeperhourcount)) as partial;
 
 -- wtf how is one supposed to use piggybank's POW? arghhhhh.
-PARTIAL2 = FOREACH PARTIAL GENERATE word, position, node, hour, partial*partial as partial;
+PARTIAL2 = FOREACH PARTIAL GENERATE node, hour, partial*partial as partial;
 
 FULLGROUP = GROUP PARTIAL2 BY (node, hour);
 NODEINFO = FOREACH FULLGROUP GENERATE group.node, group.hour, SUM(PARTIAL2.partial) as oddness;
