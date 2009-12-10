@@ -1,2 +1,4 @@
-target/*
+classes/*
 numofnodes.dat
+pig.jar
+nodeinfo.jar
