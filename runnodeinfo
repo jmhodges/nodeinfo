@@ -1,2 +1,17 @@
-#/bin/bash
-jruby -S buildr package && cp target/nodeinfo-1.0.0.jar nodeinfo.jar && rm -f numofnodes.dat &&  ~/projects/pig-0.5.0/bin/pig -p syslogfilepath=$1 -x local ~/projects/nodeinfo/nodecount.pig && ~/projects/pig-0.5.0/bin/pig -p numofnodes=`cat numofnodes.dat` -p syslogfilepath=$1 -x local ~/projects/nodeinfo/nodeinfo.pig
+#!/bin/bash
+if [[ ! -e "$1" ]]; then
+  echo "Need a path to the syslog file or directory of syslog files."
+  exit 1
+fi
+
+rm -rf classes
+mkdir -p classes
+javac -d classes -cp pig.jar LOG2.java &&
+javac -d classes -cp pig.jar WordedSyslog.java &&
+cd classes &&
+jar cvf ../nodeinfo.jar nodeinfo/*.class &&
+cd ..
+
+rm -f numofnodes.dat
+pig -p syslogfilepath=$1 -x local ~/projects/nodeinfo/nodecount.pig &&
+pig -p numofnodes=`cat numofnodes.dat` -p syslogfilepath=$1 -x local ~/projects/nodeinfo/nodeinfo.pig
