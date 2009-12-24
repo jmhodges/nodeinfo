@@ -1,13 +1,13 @@
 REGISTER nodeinfo.jar
 
 LINE = LOAD '$syslogfilepath' USING TextLoader();
-WORD = FOREACH LINE GENERATE FLATTEN(nodeinfo.WordedSyslog($0));
+WORD = FOREACH LINE GENERATE FLATTEN(nodeinfo.WordedSyslog($0, (int)60));
 
-YGROUP = GROUP WORD BY (word, position, node, hour);
-Y = FOREACH YGROUP GENERATE group, COUNT(WORD) as wordpernodeperhourcount;
+YGROUP = GROUP WORD BY (word, position, node, time_bucket);
+Y = FOREACH YGROUP GENERATE group, COUNT(WORD) as wordpernodepertimecount;
 
 XGROUP = GROUP Y BY (group.word, group.position, group.node);
-X = FOREACH XGROUP GENERATE group, SUM(Y.wordpernodeperhourcount) as wordpernodecount;
+X = FOREACH XGROUP GENERATE group, SUM(Y.wordpernodepertimecount) as wordpernodecount;
 
 XWITHLOG = FOREACH X GENERATE group, wordpernodecount, (wordpernodecount*nodeinfo.LOG2(wordpernodecount)) as weirdwordpernode;
 
@@ -19,13 +19,13 @@ GW = FILTER ALLGW BY gw > 0.0;
 
 YANDG = JOIN GW BY (group.word, group.position), Y BY (group.word, group.position);
 
-PARTIAL = FOREACH YANDG GENERATE Y::group.node as node, Y::group.hour as hour, (GW::gw * nodeinfo.LOG2(Y::wordpernodeperhourcount)) as partial;
+PARTIAL = FOREACH YANDG GENERATE Y::group.node as node, Y::group.time_bucket as bucket, (GW::gw * nodeinfo.LOG2(Y::wordpernodepertimecount)) as partial;
 
 -- wtf how is one supposed to use piggybank's POW? arghhhhh.
-PARTIAL2 = FOREACH PARTIAL GENERATE node, hour, partial*partial as partial;
+PARTIAL2 = FOREACH PARTIAL GENERATE node, bucket, partial*partial as partial;
 
-FULLGROUP = GROUP PARTIAL2 BY (node, hour);
-NODEINFO = FOREACH FULLGROUP GENERATE group.node, group.hour, SUM(PARTIAL2.partial) as oddness;
+FULLGROUP = GROUP PARTIAL2 BY (node, bucket);
+NODEINFO = FOREACH FULLGROUP GENERATE group.node, group.bucket, SUM(PARTIAL2.partial) as oddness;
 
 SORTEDNODEINFO = ORDER NODEINFO BY oddness DESC;
 

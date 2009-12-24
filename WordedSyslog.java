@@ -21,18 +21,25 @@ public class WordedSyslog extends EvalFunc<DataBag> {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
     int returnTupleSize = 4;
     
-    // returns a bag of tuples with word, position, node, and hour in them
-    // position being the position of the word in the line
+    // returns a bag of tuples with word, position, node, and
+    // time_bucket in them. position being the position of the word
+    // in the line
     public DataBag exec(Tuple input) throws IOException {
         try {
             if (input == null || input.size() == 0) return null;
             
             String line = (String) input.get(0);
             if (line == null) return null;
-            
+
+            Integer interval = null;
+            if (input.size() > 1) {
+                interval = (Integer) input.get(1);
+            }
+            if (interval == null) interval = 60;
+
             DataBag output = mBagFactory.newDefaultBag();
             
-            addWordTuples(output, line);
+            addWordTuples(output, line, interval);
             return output;
         } catch (ExecException ee) {
             // wtf, pig. copy-pasta from TOKENIZE.java
@@ -47,8 +54,7 @@ public class WordedSyslog extends EvalFunc<DataBag> {
             bagSchema.setTwoLevelAccessRequired(true);
             Schema.FieldSchema bagFS = new Schema.FieldSchema("bag_of_word_tuples",
                                                               bagSchema,
-                                                              DataType.BAG
-                                                              );
+                                                              DataType.BAG);
             return new Schema(bagFS);
         } catch (FrontendException e) {
             // stupidest fucking copy-pasta from TOKENIZE.java
@@ -64,21 +70,24 @@ public class WordedSyslog extends EvalFunc<DataBag> {
         s.add(new Schema.FieldSchema("word", DataType.CHARARRAY));
         s.add(new Schema.FieldSchema("position", DataType.INTEGER));
         s.add(new Schema.FieldSchema("node", DataType.CHARARRAY));
-        s.add(new Schema.FieldSchema("hour", DataType.INTEGER));
-        Schema.FieldSchema tupleFS = new Schema.FieldSchema("tuple_of_one_word_info",
-                                                            s,
-                                                            DataType.TUPLE
-                                                            );
+        s.add(new Schema.FieldSchema("time_bucket", DataType.CHARARRAY));
+        Schema.FieldSchema tupleFS = new Schema.
+            FieldSchema("tuple_of_one_word_info",
+                        s,
+                        DataType.TUPLE);
         return tupleFS;
     }
 
-    private void addWordTuples(DataBag output, String line) throws ExecException {
+    private void addWordTuples(DataBag output, String line, Integer interval) throws ExecException {
         StringTokenizer tok = tokenize(line);
 
         tok.nextToken(); tok.nextToken(); // throw away month and day
-        Integer hour = Integer.valueOf(tok.nextToken());
+        String hour = tok.nextToken();
+        Integer minute = Integer.valueOf(tok.nextToken());
+        String minStr = String.format("%02d", minute / interval);
+        String timeBucket = hour + ":" + minStr;
 
-        tok.nextToken(); tok.nextToken(); // throw away minute and second
+        tok.nextToken(); // throw away second
         String node = tok.nextToken();
 
         // throw away the first "word" as it's just the process name.
@@ -92,7 +101,7 @@ public class WordedSyslog extends EvalFunc<DataBag> {
             tup.set(0, tok.nextToken());
             tup.set(1, pos);
             tup.set(2, node);
-            tup.set(3, hour);
+            tup.set(3, timeBucket);
             output.add(tup);
             pos++;
         }
@@ -111,6 +120,11 @@ public class WordedSyslog extends EvalFunc<DataBag> {
         Schema s = new Schema();
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
+
+        Schema t = new Schema();
+        t.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        t.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        funcList.add(new FuncSpec(this.getClass().getName(), t));
         return funcList;
     }
 }
